@@ -176,12 +176,99 @@ if (strcmp($req->msgType, "LoginReq") === 0) {
   $reply->depAmount = $req->amount;
   */
 } else if (strcmp($req->msgType, "EnquiryReq") === 0) {
+
+  //reuse the code from above
+  $reqCardNo = $req->cardNo;
+  $reqCred = $req->cerd;
+  $reqAccNo = $req->accNo;
+
+  $sql = "SELECT * FROM `Account` WHERE `acctNum` = '$reqAccNo'";
+  $result = $conn->query($sql);
+  $row = mysqli_fetch_array($result,MYSQLI_BOTH);
+  $balance = $row['credit'];
+  $balance = floatval($balance);
+
+  $reply->msgType = "EnquiryReply";
+  $reply->cardNo = $req->cardNo;
+  $reply->accNo = $req->accNo;
+  $reply->cred = $req->cred;
+  $reply->amount = $balance;
+
+  /* 
   $reply->msgType = "EnquiryReply";
   $reply->cardNo = $req->cardNo;
   $reply->accNo = $req->accNo;
   $reply->cred = $req->cred;
   $reply->amount = "109700";
+  */
+
 } else if (strcmp($req->msgType, "TransferReq") === 0) {
+    //get var from req
+    $fromAcct = $req->fromAcc;
+    $toAcct = $req->toAcc;
+    $reqAmount = $req->amount;
+
+    $sql = "SELECT * FROM `Account` WHERE `acctNum` = '$fromAcct'";
+    $result = $conn->query($sql);
+    $fromRow = mysqli_fetch_array($result,MYSQLI_BOTH);
+    $fromBalance = $fromRow['credit'];
+
+    $sql = "SELECT * FROM `Account` WHERE `acctNum` = '$toAcct'";
+    $result = $conn->query($sql);
+    $toRow = mysqli_fetch_array($result,MYSQLI_BOTH);
+    $toBalance = $toRow['credit'];
+    
+    //conform balance and reqAmount is float
+      $toBalance = floatval($toBalance);
+      $fromBalance = floatval($fromBalance);
+      $reqAmount = floatval($reqAmount);
+
+    if($fromBalance>$reqAmount){
+      //reuse withdraw code
+      $fromBalance = $fromBalance - $reqAmount;
+      $sql = "UPDATE `Account` SET `credit`='$fromBalance' WHERE acctNum = '$fromAcct'";
+      if($conn->query($sql)){
+        //reuse doposit code
+        $toBalance = $toBalance + $reqAmount;
+        $sql = "UPDATE `Account` SET `credit`='$toBalance' WHERE acctNum = '$toAcct'";
+        if($conn->query($sql)){
+          $reply->msgType = "TransferReply";
+          $reply->cardNo = $req->cardNo;
+          $reply->cred = $req->cred;
+          $reply->fromAcc = $req->fromAcc;
+          $reply->toAcc = $req->toAcc;
+          $reply->amount = $req->amount;
+          $reply->transAmount = $reqAmount;
+        }else{
+          $reply->msgType = "TransferReply";
+          $reply->cardNo = $req->cardNo;
+          $reply->cred = $req->cred;
+          $reply->fromAcc = $req->fromAcc;
+          $reply->toAcc = $req->toAcc;
+          $reply->amount = $req->amount;
+          $reply->transAmount = 0;
+        }
+      }else{
+        $reply->msgType = "TransferReply";
+        $reply->cardNo = $req->cardNo;
+        $reply->cred = $req->cred;
+        $reply->fromAcc = $req->fromAcc;
+        $reply->toAcc = $req->toAcc;
+        $reply->amount = $req->amount;
+        $reply->transAmount = 0;
+      }
+    }else{
+      $reply->msgType = "TransferReply";
+      $reply->cardNo = $req->cardNo;
+      $reply->cred = $req->cred;
+      $reply->fromAcc = $req->fromAcc;
+      $reply->toAcc = $req->toAcc;
+      $reply->amount = $req->amount;
+      $reply->transAmount = 0;
+    }
+
+  
+  /*
   $reply->msgType = "TransferReply";
   $reply->cardNo = $req->cardNo;
   $reply->cred = $req->cred;
@@ -189,6 +276,7 @@ if (strcmp($req->msgType, "LoginReq") === 0) {
   $reply->toAcc = $req->toAcc;
   $reply->amount = $req->amount;
   $reply->transAmount = $req->amount;
+  */
 } else if (strcmp($req->msgType, "AccStmtReq") === 0) {
   $reply->msgType = "AccStmtReply";
   $reply->cardNo = $req->cardNo;
@@ -202,12 +290,52 @@ if (strcmp($req->msgType, "LoginReq") === 0) {
   $reply->cred = $req->cred;
   $reply->result = "succ";
 } else if (strcmp($req->msgType, "ChgPinReq") === 0) {
+  //get var from req
+  $oldPin = $req->oldPin;
+  $newPin = $req->newPin;
+  $reqCardNo = $req->cardNo;
+
+  //reuse login code
+  $sql = "SELECT * FROM Client where CardNo = '$reqCardNo'";
+  $result = $conn->query($sql);
+  $row = mysqli_fetch_array($result);
+  $printer->Pin = $row['Pin'];
+  if($oldPin == $printer->Pin){
+    //update old pin to new pin
+    $sql = "UPDATE `Client` SET `Pin`='$newPin' WHERE `CardNo` = '$reqCardNo'";
+    if($conn->query($sql)){
+      $reply->msgType = "ChgPinReply";
+      $reply->cardNo = $req->cardNo;
+      $reply->oldPin = $req->oldPin;
+      $reply->newPin = $req->newPin;
+      $reply->cred = $req->cred;
+      $reply->result = "succ";
+    }else{
+      $reply->msgType = "ChgPinReply";
+      $reply->cardNo = $req->cardNo;
+      $reply->oldPin = $req->oldPin;
+      $reply->newPin = $req->newPin;
+      $reply->cred = $req->cred;
+      $reply->result = "Unknown Fail";
+    }
+  }else{
+    $reply->msgType = "ChgPinReply";
+    $reply->cardNo = $req->cardNo;
+    $reply->oldPin = $req->oldPin;
+    $reply->newPin = $req->newPin;
+    $reply->cred = $req->cred;
+    $reply->result = "incorrect old pin";
+  }
+
+
+  /*
   $reply->msgType = "ChgPinReply";
   $reply->cardNo = $req->cardNo;
   $reply->oldPin = $req->oldPin;
   $reply->newPin = $req->newPin;
   $reply->cred = $req->cred;
   $reply->result = "succ";
+  */
 } else if (strcmp($req->msgType, "ChgLangReq") === 0) {
   $reply->msgType = "ChgLangReply";
   $reply->cardNo = $req->cardNo;
