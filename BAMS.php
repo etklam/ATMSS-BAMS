@@ -1,16 +1,6 @@
 <?php
 
-$servername = "localhost";
-$username = "admin_bams";
-$password = "Ihave2jj";
-$dbname = "admin_bams";
- 
-// Create Connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-// Connection check
-if ($conn->connect_error) {
-    die("Connection Fail: " . $conn->connect_error);
-} 
+require_once('./mysql_conn.php');
 
 $req = json_decode($_POST["BAMSReq"], false);
 
@@ -314,7 +304,7 @@ if (strcmp($req->msgType, "LoginReq") === 0) {
       $reply->msgType = "ChgPinReply";
       $reply->cardNo = $req->cardNo;
       $reply->oldPin = $req->oldPin;
-      $reply->newPin = $req->newPin;
+      $reply->newPin = $req->oldPin;
       $reply->cred = $req->cred;
       $reply->result = "Unknown Fail";
     }
@@ -322,7 +312,7 @@ if (strcmp($req->msgType, "LoginReq") === 0) {
     $reply->msgType = "ChgPinReply";
     $reply->cardNo = $req->cardNo;
     $reply->oldPin = $req->oldPin;
-    $reply->newPin = $req->newPin;
+    $reply->newPin = $req->oldPin;
     $reply->cred = $req->cred;
     $reply->result = "incorrect old pin";
   }
